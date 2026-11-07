@@ -1,0 +1,47 @@
+name: Build Lite XL (Raspberry Pi ARM64)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-arm64:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git meson ninja-build curl \
+            libsdl2-dev libfreetype6-dev libpcre2-dev
+
+      - name: Clone Lite XL source
+        run: |
+          git clone --depth 1 https://github.com/lite-xl/lite-xl.git lite-xl-src
+
+      - name: Configure and compile Portable Release
+        run: |
+          meson setup --buildtype=release -Dportable=true -Dprefix=/ lite-xl-src/build lite-xl-src
+          meson compile -C lite-xl-src/build
+          DESTDIR="$GITHUB_WORKSPACE/lite-xl-rpi-arm64" meson install -C lite-xl-src/build
+
+      - name: Pre-install Terminal and Settings plugins via lpm
+        run: |
+          curl -L https://github.com/lite-xl/lite-xl-plugin-manager/releases/download/latest/lpm.aarch64-linux -o lpm
+          chmod +x lpm
+          ./lpm install terminal plugin_manager settings \
+            --datadir "$GITHUB_WORKSPACE/lite-xl-rpi-arm64/data" \
+            --binary "$GITHUB_WORKSPACE/lite-xl-rpi-arm64/lite-xl" \
+            --assume-yes
+
+      - name: Package tarball for Raspberry Pi
+        run: |
+          tar -czf lite-xl-rpi-arm64.tar.gz -C "$GITHUB_WORKSPACE" lite-xl-rpi-arm64
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lite-xl-rpi-arm64
+          path: lite-xl-rpi-arm64.tar.gz
