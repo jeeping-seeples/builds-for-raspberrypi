@@ -14,7 +14,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            git meson ninja-build curl \
+            git meson ninja-build curl build-essential \
             libsdl2-dev libfreetype6-dev libpcre2-dev
 
       - name: Clone Lite XL source (v2.1.7)
@@ -27,14 +27,20 @@ jobs:
           meson compile -C lite-xl-src/build
           DESTDIR="$GITHUB_WORKSPACE/lite-xl-rpi-arm64" meson install -C lite-xl-src/build
 
-      - name: Pre-install Terminal and Settings plugins via lpm
+      - name: Build and install Terminal plugin directly
         run: |
-          curl -L https://github.com/lite-xl/lite-xl-plugin-manager/releases/download/latest/lpm.aarch64-linux -o lpm
-          chmod +x lpm
-          ./lpm install terminal plugin_manager settings \
-            --datadir "$GITHUB_WORKSPACE/lite-xl-rpi-arm64/data" \
-            --binary "$GITHUB_WORKSPACE/lite-xl-rpi-arm64/lite-xl" \
-            --assume-yes
+          mkdir -p "$GITHUB_WORKSPACE/lite-xl-rpi-arm64/data/plugins/terminal"
+          git clone --depth 1 https://github.com/adamharrison/lite-xl-terminal.git terminal-src
+          cd terminal-src
+          ./build.sh
+          cp -R plugins/terminal/* "$GITHUB_WORKSPACE/lite-xl-rpi-arm64/data/plugins/terminal/"
+          cp libterminal.so "$GITHUB_WORKSPACE/lite-xl-rpi-arm64/data/plugins/terminal/"
+
+      - name: Install Settings GUI & Widget plugins
+        run: |
+          PLUGINS_DIR="$GITHUB_WORKSPACE/lite-xl-rpi-arm64/data/plugins"
+          curl -sSL https://raw.githubusercontent.com/lite-xl/lite-xl-plugins/master/plugins/widget.lua -o "$PLUGINS_DIR/widget.lua"
+          curl -sSL https://raw.githubusercontent.com/lite-xl/lite-xl-plugins/master/plugins/settings.lua -o "$PLUGINS_DIR/settings.lua"
 
       - name: Package tarball for Raspberry Pi
         run: |
