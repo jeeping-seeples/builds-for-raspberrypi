@@ -17,9 +17,9 @@ jobs:
             git meson ninja-build curl \
             libsdl2-dev libfreetype6-dev libpcre2-dev
 
-      - name: Clone Lite XL source
+      - name: Clone Lite XL source (v2.1.7)
         run: |
-          git clone --depth 1 https://github.com/lite-xl/lite-xl.git lite-xl-src
+          git clone --depth 1 --branch v2.1.7 https://github.com/lite-xl/lite-xl.git lite-xl-src
 
       - name: Configure and compile Portable Release
         run: |
